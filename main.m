@@ -1,7 +1,7 @@
 [d_star, Fs_star] = audioread("sounds/StarWars3.wav");
 [d_noise, Fs_noise] = audioread("sounds/Noise.wav");
 
-function [w_updated] = lagrangian_anc(d, x, C, mu, max_iter)
+function [w_updated, errors] = minimize(d, x, C, mu, max_iter)
     % Inputs:
     % d: Composite signal (desired signal)
     % x: Input signal (noise reference)
@@ -12,6 +12,7 @@ function [w_updated] = lagrangian_anc(d, x, C, mu, max_iter)
     M = 50; % Number of filter weights
     w = zeros(M, 1); % Initialize weight vector
     N = length(d); % Length of the composite signal
+    errors = 1:max_iter;
 
     hWaitbar = waitbar(0, 'Processing...');
     for iter = 1:max_iter
@@ -33,6 +34,7 @@ function [w_updated] = lagrangian_anc(d, x, C, mu, max_iter)
             end
             w = w_new;
         end
+        errors(iter) = norm(e_n);
     end
     
     w_updated = w; % Return updated weights after optimization
@@ -56,8 +58,16 @@ function noise_cancelled_signal = create_noise_cancelled_signal(d, x, w)
     end
 end
 
-w = lagrangian_anc(d_star, d_noise, 0.9, 0.0001, 500);
-d_star_new = create_noise_cancelled_signal(d_star, d_noise, w);
-soundsc(d_star, Fs_star);
-pause(4)
-soundsc(d_star_new, Fs_noise);
+
+for alpha = [0.1, 0.01, 0.001, 0.0001, 0.00001]
+    [w, error] = minimize(d_star, d_noise, 0.9, alpha, 2);
+    d_star_new = create_noise_cancelled_signal(d_star, d_noise, w);
+    disp(error);
+    figure;
+    plot(error);
+end
+% soundsc(d_star, Fs_star);
+% pause(4)
+% soundsc(d_star_new, Fs_noise);
+
+
